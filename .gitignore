@@ -205,4 +205,13 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+
+
+
+
+
+
 SCBM/
+flutter_app/.dart_tool/
+flutter_app/build/
