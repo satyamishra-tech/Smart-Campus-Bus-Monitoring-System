@@ -215,3 +215,21 @@ __marimo__/
 SCBM/
 flutter_app/.dart_tool/
 flutter_app/build/
+
+
+
+__pycache__/
+*.pyc
+venv/
+.env
+ 
+# Flutter
+flutter_app/.dart_tool/
+flutter_app/build/
+
+
+# Docker
+docker/postgres_data/
+ 
+# VS Code
+.vscode/
