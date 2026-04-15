@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus Bus — Admin</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="/static/admin.css" />
+  <link rel="stylesheet" href="/static/modal-styles.css" />
+</head>
+<body>
+
+<!-- ╔══════════════════════════════╗
+     ║         SIDEBAR              ║
+     ╚══════════════════════════════╝ -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-logo">🚌</div>
+    <div>
+      <div class="brand-text-name">BusAdmin</div>
+      <div class="brand-text-sub">Smart Campus System</div>
+    </div>
+  </div>
+
+  <div class="nav-section-label">Management</div>
+  <nav class="sidebar-nav">
+    <a class="nav-item active" data-page="overview">
+      <span class="nav-icon">⬡</span> Overview
+    </a>
+    <a class="nav-item" data-page="routes">
+      <span class="nav-icon">◎</span> Routes
+    </a>
+    <a class="nav-item" data-page="buses">
+      <span class="nav-icon">▣</span> Buses
+    </a>
+    <a class="nav-item" data-page="drivers">
+      <span class="nav-icon">◉</span> Drivers
+    </a>
+    <a class="nav-item" data-page="students">
+      <span class="nav-icon">◈</span> Students
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">Campus Bus &nbsp;·&nbsp; v1.0</div>
+</aside>
+
+<!-- ╔══════════════════════════════╗
+     ║           MAIN               ║
+     ╚══════════════════════════════╝ -->
+<div class="main">
+
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="topbar-title" id="topbar-title">Overview</div>
+      <div class="topbar-subtitle" id="topbar-subtitle">Dashboard summary</div>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        System Online
+      </div>
+    </div>
+  </header>
+
+  <!-- Toast -->
+  <div id="toast" class="toast hidden">
+    <span class="toast-icon" id="toast-icon"></span>
+    <span id="toast-msg"></span>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       PAGE · Overview
+  ════════════════════════════════════════ -->
+  <section class="page active" id="page-overview">
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon-box blue">🚌</div>
+        <div class="stat-info">
+          <div class="stat-label">Total Buses</div>
+          <div class="stat-value" id="stat-buses">—</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon-box green">🗺</div>
+        <div class="stat-info">
+          <div class="stat-label">Total Routes</div>
+          <div class="stat-value" id="stat-routes">—</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon-box purple">👤</div>
+        <div class="stat-info">
+          <div class="stat-label">Total Drivers</div>
+          <div class="stat-value" id="stat-drivers">—</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon-box amber">✅</div>
+        <div class="stat-info">
+          <div class="stat-label">Active Buses</div>
+          <div class="stat-value" id="stat-active-buses">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>View Route on Map</h3>
+      </div>
+      <div class="form-body">
+        <div class="field-group">
+          <label for="overview-route-select">Select Route</label>
+          <select id="overview-route-select">
+            <option value="">Choose a route to view</option>
+          </select>
+        </div>
+        <div class="map-container">
+          <div id="overview-route-map"></div>
+          <div id="overview-map-status" class="map-hint">Select a route to display</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="overview-grid">
+      <div class="card">
+        <div class="card-header">
+          <h3>Buses</h3>
+          <div class="card-header-actions">
+            <button class="btn btn-sm btn-outline" id="refresh-overview-btn">↺ Refresh</button>
+          </div>
+        </div>
+        <div class="table-scroll">
+          <table class="dt" id="overview-buses-table">
+            <thead>
+              <tr>
+                <th style="width:40px">#</th>
+                <th>Bus Number</th>
+                <th>Route</th>
+                <th>Driver</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="5" class="empty-cell">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Routes</h3>
+        </div>
+        <div class="table-scroll">
+          <table class="dt" id="overview-routes-table">
+            <thead>
+              <tr>
+                <th style="width:40px">#</th>
+                <th>Route Name</th>
+                <th style="width:70px">Stops</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td colspan="3" class="empty-cell">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ════════════════════════════════════════
+       PAGE · Routes
+  ════════════════════════════════════════ -->
+  <section class="page" id="page-routes">
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Register New Route</h3>
+      </div>
+      <div class="form-body">
+        <div class="field-group">
+          <label for="route-name">Route Name</label>
+          <input id="route-name" type="text" placeholder="e.g. Route A — North Campus" />
+        </div>
+
+        <div class="field-group">
+          <label>Route Stops</label>
+          <div class="map-container">
+            <div id="route-map"></div>
+            <div id="map-status" class="map-hint">Map loading…</div>
+          </div>
+          <div style="margin-bottom:10px">
+            <button type="button" id="clear-stops-button" class="btn btn-danger btn-sm">✕ Clear Stops</button>
+          </div>
+          <textarea id="route-stops" rows="4"
+            placeholder="Stops appear here as you click the map, or enter manually:&#10;Stop Name, latitude, longitude  (one per line)"></textarea>
+          <small>Click anywhere on the map to add stops. Edit text directly to adjust or rename stops.</small>
+        </div>
+
+        <button id="create-route-button" class="btn btn-primary">+ Create Route</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>All Routes</h3>
+        <div class="card-header-actions">
+          <button class="btn btn-sm btn-outline" id="refresh-routes-btn">↺ Refresh</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="dt" id="routes-table">
+          <thead>
+            <tr>
+              <th style="width:40px">#</th>
+              <th>Route Name</th>
+              <th style="width:80px">Stops</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="3" class="empty-cell">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>🎬 Bus Simulation</h3>
+        <div class="card-header-actions">
+          <button class="btn btn-sm btn-outline" id="refresh-sim-status-btn">↺ Status</button>
+        </div>
+      </div>
+      <div class="form-body">
+        <div class="field-group">
+          <label for="simulation-route-select">Select Route to Simulate</label>
+          <select id="simulation-route-select">
+            <option value="">Choose a route</option>
+          </select>
+          <small>Route 4 (DD Nagar) is recommended for testing</small>
+        </div>
+
+        <div class="field-group">
+          <label>Simulation Controls</label>
+          <div style="display: flex; gap: 8px;">
+            <button id="start-simulation-btn" class="btn btn-success">▶ Start Simulation</button>
+            <button id="stop-simulation-btn" class="btn btn-danger">⏹ Stop Simulation</button>
+          </div>
+        </div>
+
+        <div id="simulation-status-box" class="info-box" style="display: none;">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div>
+              <small style="color: #666; display: block; margin-bottom: 4px;">Progress</small>
+              <div id="sim-progress" style="font-weight: 600; font-size: 16px;">0%</div>
+            </div>
+            <div>
+              <small style="color: #666; display: block; margin-bottom: 4px;">Elapsed Time</small>
+              <div id="sim-elapsed" style="font-weight: 600; font-size: 16px;">0:00</div>
+            </div>
+          </div>
+          <div style="width: 100%; height: 6px; background: #e0e0e0; border-radius: 3px; overflow: hidden;">
+            <div id="sim-progress-bar" style="height: 100%; background: linear-gradient(90deg, #4CAF50, #8BC34A); width: 0%; transition: width 0.3s;"></div>
+          </div>
+          <div style="margin-top: 8px; font-size: 12px; color: #666;">
+            <div id="sim-remaining">Remaining: ~50 minutes</div>
+          </div>
+        </div>
+
+        <div id="simulation-message" style="padding: 8px; border-radius: 6px; font-size: 13px; display: none;"></div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ════════════════════════════════════════
+       PAGE · Buses
+  ════════════════════════════════════════ -->
+  <section class="page" id="page-buses">
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><h3>Register Bus</h3></div>
+        <div class="form-body">
+          <div class="field-group">
+            <label for="bus-number">Bus Number</label>
+            <input id="bus-number" type="text" placeholder="e.g. BUS-101" />
+          </div>
+          <div class="field-group">
+            <label for="bus-route-select">Route (optional)</label>
+            <select id="bus-route-select">
+              <option value="">No route assigned</option>
+            </select>
+          </div>
+          <button id="create-bus-button" class="btn btn-primary">+ Register Bus</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Assign Route to Bus</h3></div>
+        <div class="form-body">
+          <div class="field-group">
+            <label for="assign-route-bus-select">Bus</label>
+            <select id="assign-route-bus-select">
+              <option value="">Select a bus</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="assign-route-select">Route</label>
+            <select id="assign-route-select">
+              <option value="">Select a route</option>
+            </select>
+          </div>
+          <button id="assign-bus-route-button" class="btn btn-primary">Assign Route</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>All Buses</h3>
+        <div class="card-header-actions">
+          <button class="btn btn-sm btn-outline" id="refresh-buses-btn">↺ Refresh</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="dt" id="buses-table">
+          <thead>
+            <tr>
+              <th style="width:40px">#</th>
+              <th>Bus Number</th>
+              <th>Route</th>
+              <th>Driver</th>
+              <th style="width:100px">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="5" class="empty-cell">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ════════════════════════════════════════
+       PAGE · Drivers
+  ════════════════════════════════════════ -->
+  <section class="page" id="page-drivers">
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><h3>Register Driver</h3></div>
+        <div class="form-body">
+          <div class="field-group">
+            <label for="driver-roll">Roll Number</label>
+            <input id="driver-roll" type="text" placeholder="e.g. DRV-001" />
+          </div>
+          <div class="field-group">
+            <label for="driver-name">Full Name</label>
+            <input id="driver-name" type="text" placeholder="Driver's full name" />
+          </div>
+          <div class="field-group">
+            <label for="driver-password">Password</label>
+            <input id="driver-password" type="password" placeholder="Set a password" />
+          </div>
+          <button id="register-driver-button" class="btn btn-primary">+ Register Driver</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Assign Driver to Bus</h3></div>
+        <div class="form-body">
+          <div class="field-group">
+            <label for="assign-bus-select">Bus</label>
+            <select id="assign-bus-select">
+              <option value="">Select a bus</option>
+            </select>
+          </div>
+          <div class="field-group">
+            <label for="assign-driver-select">Driver</label>
+            <select id="assign-driver-select">
+              <option value="">Select a driver</option>
+            </select>
+          </div>
+          <button id="assign-driver-button" class="btn btn-primary">Assign Driver</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>All Drivers</h3>
+        <div class="card-header-actions">
+          <button class="btn btn-sm btn-outline" id="refresh-drivers-btn">↺ Refresh</button>
+        </div>
+      </div>
+      <div class="table-scroll">
+        <table class="dt" id="drivers-table">
+          <thead>
+            <tr>
+              <th style="width:40px">#</th>
+              <th>Roll Number</th>
+              <th>Name</th>
+              <th>Assigned Bus</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td colspan="4" class="empty-cell">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ════════════════════════════════════════
+       PAGE · Students
+  ════════════════════════════════════════ -->
+  <section class="page" id="page-students">
+
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><h3>Assign Route to Student</h3></div>
+        <div class="form-body">
+          <div class="field-group">
+            <label for="assign-student-roll">Student Roll Number</label>
+            <input id="assign-student-roll" type="text" placeholder="e.g. STU-2024-001" />
+          </div>
+          <div class="field-group">
+            <label for="assign-student-route-select">Route</label>
+            <select id="assign-student-route-select">
+              <option value="">Select a route</option>
+            </select>
+          </div>
+          <button id="assign-student-route-button" class="btn btn-primary">Assign Route</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Fee Verification</h3></div>
+        <div class="form-body">
+          <div class="field-group">
+            <label for="verify-student-roll">Student Roll Number</label>
+            <input id="verify-student-roll" type="text" placeholder="e.g. STU-2024-001" />
+          </div>
+          <div class="field-group">
+            <label>Fee Status</label>
+            <label class="toggle-row" for="student-fee-paid">
+              <div>
+                <div class="toggle-label-text">Mark as Fee Paid</div>
+                <div class="toggle-label-hint">Toggle to mark payment as received</div>
+              </div>
+              <label class="switch">
+                <input id="student-fee-paid" type="checkbox" />
+                <span class="switch-track"></span>
+              </label>
+            </label>
+          </div>
+          <button id="update-fee-status-button" class="btn btn-primary">Update Fee Status</button>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+</div><!-- /.main -->
+
+<!-- Edit Stop Modal -->
+<div id="edit-stop-modal" class="modal hidden">
+  <div class="modal-overlay" id="modal-overlay"></div>
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Edit Route Stop</h3>
+      <button class="modal-close" id="close-modal-btn">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="field-group">
+        <label for="edit-stop-name">Stop Name</label>
+        <input id="edit-stop-name" type="text" placeholder="Enter stop name" />
+      </div>
+      <div class="field-group">
+        <label>Select Location</label>
+        <button id="select-location-btn" class="btn btn-secondary" style="width: 100%; margin-bottom: 8px;">📍 Choose Location on Map</button>
+        <div id="location-selector-map" style="display: none; height: 300px; border: 2px solid #3b82f6; border-radius: 8px; margin-bottom: 8px;"></div>
+        <div id="location-hint" style="font-size: 0.85rem; color: #666; margin-bottom: 8px; text-align: center;">Click "Choose Location on Map" to select coordinates</div>
+      </div>
+      <div class="field-group">
+        <label for="edit-stop-latitude">Latitude</label>
+        <input id="edit-stop-latitude" type="number" step="0.000001" placeholder="e.g. 28.6139" />
+      </div>
+      <div class="field-group">
+        <label for="edit-stop-longitude">Longitude</label>
+        <input id="edit-stop-longitude" type="number" step="0.000001" placeholder="e.g. 77.2090" />
+      </div>
+      <div class="field-group">
+        <label for="edit-stop-order">Order</label>
+        <input id="edit-stop-order" type="number" step="1" min="1" placeholder="Stop order" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="delete-stop-btn" class="btn btn-danger">🗑️ Delete Stop</button>
+      <button id="cancel-edit-btn" class="btn btn-secondary">Cancel</button>
+      <button id="save-edit-btn" class="btn btn-primary">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/static/admin.js"></script>
+</body>
+</html>

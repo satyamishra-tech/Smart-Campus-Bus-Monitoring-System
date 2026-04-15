@@ -21,7 +21,7 @@ services:
     ports:
       - '8000:8000'
     environment:
-      DATABASE_URL: postgresql://postgres:Postgre@715@postgres:5432/campus_bus_db
+      DATABASE_URL: postgresql://postgres:Postgre%40715@postgres:5432/campus_bus_db
       SECRET_KEY: my-very-secret-jwt-key-change-in-production
       ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: '60'
