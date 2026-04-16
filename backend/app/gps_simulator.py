@@ -48,9 +48,10 @@ def _fetch_route_geometry(stops):
 class BusSimulator:
     """Manages bus simulation for a specific route and bus."""
     
-    def __init__(self, bus_id: int, route_id: int):
+    def __init__(self, bus_id: int, route_id: int, delay_seconds: int = 0):
         self.bus_id = bus_id
         self.route_id = route_id
+        self.delay_seconds = delay_seconds
         self.is_running = False
         self.start_time: Optional[datetime] = None
         self.thread: Optional[threading.Thread] = None
@@ -188,57 +189,65 @@ class BusSimulator:
     
     def _simulation_loop(self) -> None:
         """Main simulation loop - runs in separate thread."""
+        if self.delay_seconds > 0:
+            delay_elapsed = 0
+            while self.is_running and delay_elapsed < self.delay_seconds:
+                threading.Event().wait(1)
+                delay_elapsed += 1
+            if not self.is_running:
+                return
+
+        self.start_time = datetime.now()
         elapsed_time = 0
-        
+
         while self.is_running and elapsed_time < ROUTE_DURATION_SECONDS:
             try:
                 # Calculate progress (0 to 1)
                 progress = elapsed_time / ROUTE_DURATION_SECONDS
-                
+
                 # Get interpolated position
                 lat, lon = self._interpolate_position(progress)
-                
+
                 # Create GPS event
                 self._create_gps_event(lat, lon)
-                
+
                 # Sleep for update interval
                 elapsed_seconds = 0
                 while elapsed_seconds < GPS_UPDATE_INTERVAL_SECONDS and self.is_running:
                     threading.Event().wait(1)
                     elapsed_seconds += 1
-                
+
                 elapsed_time += GPS_UPDATE_INTERVAL_SECONDS
-                
+
             except Exception as e:
                 print(f"[GPS SIMULATOR] Error in simulation loop: {e}")
                 break
-        
+
         # Create final position at end
         if self.is_running and len(self.route_points) > 0:
             final_lat, final_lon = self.route_points[-1]
             self._create_gps_event(final_lat, final_lon)
-        
+
         print(f"[GPS SIMULATOR] Bus {self.bus_id} simulation completed!")
         self.is_running = False
-    
+
     def start(self) -> bool:
         """Start the simulation."""
         if self.is_running:
             return False
-        
+
         # Load route points
         if not self._load_route_points():
             print(f"[GPS SIMULATOR] Failed to load route {self.route_id}")
             return False
-        
+
         self.is_running = True
-        self.start_time = datetime.now()
-        
+
         # Start simulation in background thread
         self.thread = threading.Thread(target=self._simulation_loop, daemon=True)
         self.thread.start()
-        
-        print(f"[GPS SIMULATOR] Started simulation for Bus {self.bus_id} on Route {self.route_id}")
+
+        print(f"[GPS SIMULATOR] Scheduled simulation for Bus {self.bus_id} on Route {self.route_id} with delay {self.delay_seconds}s")
         return True
     
     def stop(self) -> bool:
@@ -259,6 +268,8 @@ class BusSimulator:
                 "route_id": self.route_id,
                 "progress": 0,
                 "elapsed_seconds": 0,
+                "total_seconds": ROUTE_DURATION_SECONDS,
+                "delay_seconds": self.delay_seconds,
             }
         
         from datetime import datetime
@@ -272,19 +283,35 @@ class BusSimulator:
             "progress": progress,
             "elapsed_seconds": int(elapsed),
             "total_seconds": ROUTE_DURATION_SECONDS,
+            "delay_seconds": self.delay_seconds,
         }
 
 
-# Global simulator instance
-_current_simulator: Optional[BusSimulator] = None
+# Global simulator registry
+_simulators: dict[int, BusSimulator] = {}
 
 
-def get_simulator() -> Optional[BusSimulator]:
-    """Get the current simulator instance."""
-    return _current_simulator
+def get_simulator(bus_id: Optional[int] = None) -> Optional[BusSimulator]:
+    """Get the current simulator instance or a simulator by bus id."""
+    if bus_id is not None:
+        return _simulators.get(bus_id)
+
+    for simulator in _simulators.values():
+        if simulator.is_running:
+            return simulator
+    return None
 
 
-def set_simulator(simulator: Optional[BusSimulator]) -> None:
-    """Set the current simulator instance."""
-    global _current_simulator
-    _current_simulator = simulator
+def set_simulator(simulator: BusSimulator) -> None:
+    """Register a bus simulator instance."""
+    _simulators[simulator.bus_id] = simulator
+
+
+def remove_simulator(bus_id: int) -> None:
+    """Remove a simulator from the registry."""
+    _simulators.pop(bus_id, None)
+
+
+def list_simulators() -> List[BusSimulator]:
+    """List all registered simulators."""
+    return list(_simulators.values())

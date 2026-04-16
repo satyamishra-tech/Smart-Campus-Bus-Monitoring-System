@@ -55,6 +55,8 @@ def get_buses(
                 "bus_number": bus.bus_number,
                 "latitude": latest_event.latitude if latest_event else 0.0,
                 "longitude": latest_event.longitude if latest_event else 0.0,
+                "route_id": bus.route_id,
+                "route_name": bus.route.name if bus.route else None,
             }
         )
 
@@ -228,4 +230,6 @@ def get_bus_details(
         "latitude": latest_event.latitude if latest_event else None,
         "longitude": latest_event.longitude if latest_event else None,
         "last_updated": latest_event.timestamp.isoformat() if latest_event else None,
+        "route_id": bus.route_id,
+        "route_name": bus.route.name if bus.route else None,
     }
